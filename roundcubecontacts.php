@@ -79,7 +79,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 		while($result_rows = mysql_fetch_array($result)){
 			$user_id=$result_rows[0];
-		}	
+		}
 
 		return $user_id;
 	}
@@ -97,7 +97,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 			$mail_host=$result_rows[0];
 			$lang=$result_rows[1];
 		}
-	
+
 		$insert="INSERT INTO users (username,created,mail_host,language) VALUES ('$username',NOW(),'$mail_host','$lang')";
 		mysql_query($insert,$this->contactsdb) or ZLog::Write(LOGLEVEL_DEBUG, (mysql_error($this->contactsdb)));
 
@@ -139,12 +139,22 @@ class BackendRoundcubeContacts extends BackendDiff {
     public function Logon($username, $domain, $password) {
     	$this->dbConnectAuth();
     	$this->dbConnectContacts();
-
+/*
 		$password_from_db=$this->getEncryptedPassword($username);
 
 		$crypted=crypt($password, $password_from_db);
-	
-		if (strcmp($crypted,$password_from_db)==0) {
+*/
+
+		$imap_handle = imap_open ("{localhost:993/imap/ssl/novalidate-cert}", $username, $password);
+
+		if( $imap_handle === false ) $login_success = false;
+		else {
+			imap_close( $imap_handle );
+			$login_success = true;
+		}
+//		if (strcmp($crypted,$password_from_db)==0) {
+
+		if( $login_success ) {
 			ZLog::Write(LOGLEVEL_DEBUG, sprintf("Logon(): User '%s' is authenticated",$username));
 			$this->logged_in_user = strtolower($username);
 
@@ -619,7 +629,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 			$message["id"] = $result_rows[0];
 			$message["mod"] = strtotime($result_rows[1]);
             $message["flags"] = 1; // always 'read'
-		}	
+		}
 
         return $message;
     }
@@ -636,7 +646,7 @@ class BackendRoundcubeContacts extends BackendDiff {
      * @return array                        same return value as StatMessage()
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
-    public function ChangeMessage($folderid, $id, $message) {
+    public function ChangeMessage($folderid, $id, $message, $contentParameters) {
         ZLog::Write(LOGLEVEL_DEBUG, 'VCDir::ChangeMessage('.$folderid.', '.$id.', ..)');
         $mapping = array(
             'fileas' => 'FN',
@@ -723,7 +733,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 			while($result_rows = mysql_fetch_array($result2)){
 				$id=$result_rows[0];
 				ZLog::Write(LOGLEVEL_DEBUG, "ChangeMessage new contact id is $id");
-			}	
+			}
 		}
 
         return $this->StatMessage($folderid, $id);
@@ -740,7 +750,7 @@ class BackendRoundcubeContacts extends BackendDiff {
      * @return boolean                      status of the operation
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
-    public function SetReadFlag($folderid, $id, $flags) {
+    public function SetReadFlag($folderid, $id, $flags, $contentParameters) {
         return false;
     }
 
@@ -754,7 +764,7 @@ class BackendRoundcubeContacts extends BackendDiff {
      * @return boolean                      status of the operation
      * @throws StatusException              could throw specific SYNC_STATUS_* exceptions
      */
-    public function DeleteMessage($folderid, $id) {
+    public function DeleteMessage($folderid, $id, $contentParameters) {
         //return unlink($this->getPath() . '/' . $id);
 		$query="UPDATE contacts SET del='1',changed=NOW() where contact_id='$id' and user_id='$this->db_user_id'";
 		mysql_query($query,$this->contactsdb) or print (mysql_error($this->contactsdb));
@@ -773,7 +783,7 @@ class BackendRoundcubeContacts extends BackendDiff {
      * @return boolean                      status of the operation
      * @throws StatusException              could throw specific SYNC_MOVEITEMSSTATUS_* exceptions
      */
-    public function MoveMessage($folderid, $id, $newfolderid) {
+    public function MoveMessage($folderid, $id, $newfolderid, $contentParameters) {
         return false;
     }
 
@@ -842,3 +852,4 @@ class BackendRoundcubeContacts extends BackendDiff {
         return $data;
     }
 };
+?>
