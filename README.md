@@ -3,13 +3,9 @@ Z-Push backend to allow synchronisation of Roundcube contacts with ActiveSync en
 
 To use:
 - Set up Z-Push as normal.
-- Copy the file roundcubecontacts.php into the backend folder.
-- Open the Z-Push config.php file in a text editor.
-- Set BACKEND_PROVIDER to BackendRoundcubeContacts.
-- Add the following lines to the config.php file:
-```php
-define('ROUNDCUBE_CONTACT_DB_NAME','database');
-define('ROUNDCUBE_CONTACT_DB_USER','user');
-define('ROUNDCUBE_CONTACT_DB_PASS','password');
-define('ROUNDCUBE_CONTACT_DB_HOST','host');
-```
+- Create the backend/roundcubecontacts directory
+- Copy the file roundcubecontacts.php and config.php into the backend/roundcubecontacts folder.
+- Open the main Z-Push config.php file in a text editor.
+- Set BACKEND_PROVIDER to BackendRoundcubeContacts in the main config.php
+- Update backend/roundcubecontacts/config.php and set Rouncube's DB and choose what mechanism you want to use to authenticate users (either database or imap)
+
