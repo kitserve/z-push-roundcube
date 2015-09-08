@@ -10,13 +10,16 @@
  * @author     Alex Charrett <alex@transposed.org>
  * @author     Kitson Consulting <kitson-consulting.co.uk>
  * @copyright  2007-2012 Zarafa Deutschland GmbH
- * @copyright  2013 Alex Charrett
+ * @copyright  2013-2015 Alex Charrett
  * @copyright  2015 Kitson Consulting Limited
- * @date       28/06/2015
+ * @date       2015-09-07
  * @file       roundcubecontacts.php
  * @licence    https://www.gnu.org/licenses/agpl-3.0.en.html Gnu Affero Public Licence v3
  * @project    Z-Push
  */
+// config file
+require_once("backend/roundcubecontacts/config.php");
+
 include_once( 'lib/default/diffbackend/diffbackend.php' );
 
 class BackendRoundcubeContacts extends BackendDiff {
@@ -101,10 +104,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	 */
 
 	/**
-	 * Authenticates the user - NOT EFFECTIVELY IMPLEMENTED
-	 * Normally some kind of password check would be done here.
-	 * Alternatively, the password could be ignored and an Apache
-	 * authentication via mod_auth_* could be done
+	 * Authenticates the user
 	 *
 	 * @param string        $username
 	 * @param string        $domain
@@ -115,17 +115,33 @@ class BackendRoundcubeContacts extends BackendDiff {
 	 */
 	public function Logon( $username, $domain, $password )
 	{
-		$this->dbConnectAuth();
 		$this->dbConnectContacts();
+		$login_success = false;
 
-		$imap_handle = imap_open ("{localhost:993/imap/ssl/novalidate-cert}", $username, $password);
-
-		if( $imap_handle === false ) $login_success = false;
-		else
+		if(strcmp(ROUNDCUBE_CONTACT_USER_AUTH,"database")==0)
 		{
-			imap_close( $imap_handle );
-			$login_success = true;
+			$this->dbConnectAuth();
+
+			$password_from_db=$this->getEncryptedPassword($username);
+			$crypted=crypt($password, $password_from_db);
+
+			if (strcmp($crypted,$password_from_db)==0)
+			{
+				$login_success = true;
+			}
 		}
+		elseif(strcmp(ROUNDCUBE_CONTACT_USER_AUTH,"imap")==0)
+		{
+
+			$imap_handle = imap_open (ROUNDCUBE_CONTACT_IMAP_SERVER, $username, $password);
+
+			if( ! ($imap_handle === false ) )
+			{
+				imap_close( $imap_handle );
+				$login_success = true;
+			}
+		}
+
 
 		if( $login_success )
 		{
@@ -850,7 +866,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 		$result=mysql_query($query,$this->authdb) or print (mysql_error($this->authdb));
 
 		while($result_rows = mysql_fetch_array($result)){
-			$password=$result_rows[0];
+			// Remove any {SPEC} password hasing spec that Dovecot might need (PHP does not need it)
+			// See http://wiki.dovecot.org/Authentication/PasswordSchemes
+			$password=preg_replace('/^{.*}/','',$result_rows[0]);
 		}	
 
 		return $password;	
@@ -888,5 +906,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 	function unescape($data){
 		$data = str_replace(array('\\\\', '\\;', '\\,', '\\n','\\N'),array('\\', ';', ',', "\n", "\n"),$data);
 		return $data;
+	}
+
+	public function GetSupportedASVersion() {
+		return ZPush::ASV_14;
 	}
 };
