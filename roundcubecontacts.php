@@ -12,7 +12,7 @@
  * @copyright  2007-2012 Zarafa Deutschland GmbH
  * @copyright  2013-2015 Alex Charrett
  * @copyright  2015 Kitson Consulting Limited
- * @date       2015-09-07
+ * @date       2015-09-20
  * @file       roundcubecontacts.php
  * @licence    https://www.gnu.org/licenses/agpl-3.0.en.html Gnu Affero Public Licence v3
  * @project    Z-Push
@@ -521,6 +521,8 @@ class BackendRoundcubeContacts extends BackendDiff {
 		if( isset( $vcard['email'][2]['val'][0] ) )
 			$message->email3address = $vcard['email'][2]['val'][0];
 
+		// Calling array_map repeatedly throughout this clause is inefficient, but it works.
+		// This code shouldn't get called all that often. Refactoring welcome.
 		if( isset( $vcard['tel'] ) )
 		{
 			foreach( $vcard['tel'] as $tel )
@@ -529,21 +531,21 @@ class BackendRoundcubeContacts extends BackendDiff {
 				{
 					$tel['type'] = array();
 				}
-				if( in_array( 'car', $tel['type'] ) )
+				if( in_array( 'car', array_map( 'mb_strtolower', $tel['type'] ) ) )
 				{
 					$message->carphonenumber = $tel['val'][0];
 				}
-				elseif( in_array( 'pager', $tel['type'] ) )
+				elseif( in_array( 'pager', array_map( 'mb_strtolower', $tel['type'] ) ) )
 				{
 					$message->pagernumber = $tel['val'][0];
 				}
-				elseif( in_array( 'cell', $tel['type'] ) )
+				elseif( in_array( 'cell', array_map( 'mb_strtolower', $tel['type'] ) ) )
 				{
 					$message->mobilephonenumber = $tel['val'][0];
 				}
-				elseif( in_array( 'home', $tel['type'] ) )
+				elseif( in_array( 'home', array_map( 'mb_strtolower', $tel['type'] ) ) )
 				{
-					if( in_array( 'fax', $tel['type'] ) )
+					if( in_array( 'fax', array_map( 'mb_strtolower', $tel['type'] ) ) )
 					{
 						$message->homefaxnumber = $tel['val'][0];
 					}
@@ -556,9 +558,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 						$message->home2phonenumber = $tel['val'][0];
 					}
 				}
-				elseif( in_array( 'work', $tel['type'] ) )
+				elseif( in_array( 'work', array_map( 'mb_strtolower', $tel['type'] ) ) )
 				{
-					if( in_array( 'fax', $tel['type'] ) )
+					if( in_array( 'fax', array_map( 'mb_strtolower', $tel['type'] ) ) )
 					{
 						$message->businessfaxnumber = $tel['val'][0];
 					}
