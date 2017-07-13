@@ -32,7 +32,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	private function dbConnectContacts()
 	{
 		ZLog::Write( LOGLEVEL_DEBUG, 'dbConnectContacts()' );
- ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
+ 
 		$this->contactsdb = mysqli_connect( ROUNDCUBE_CONTACT_DB_HOST, ROUNDCUBE_CONTACT_DB_USER, ROUNDCUBE_CONTACT_DB_PASS );
 		@mysqli_select_db( $this->contactsdb, ROUNDCUBE_CONTACT_DB_NAME ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
 	}
