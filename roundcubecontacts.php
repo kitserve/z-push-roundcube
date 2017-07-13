@@ -12,6 +12,7 @@
  * @copyright  2007-2012 Zarafa Deutschland GmbH
  * @copyright  2013-2015 Alex Charrett
  * @copyright  2015 Kitson Consulting Limited
+ * @opyright  2017 James Coyle - JamesCoyle.net Limited
  * @date       2015-09-20
  * @file       roundcubecontacts.php
  * @licence    https://www.gnu.org/licenses/agpl-3.0.en.html Gnu Affero Public Licence v3
@@ -32,7 +33,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	{
 		ZLog::Write( LOGLEVEL_DEBUG, 'dbConnectContacts()' );
 
-		$this->contactsdb = mysql_connect( ROUNDCUBE_CONTACT_DB_HOST, ROUNDCUBE_CONTACT_DB_USER, ROUNDCUBE_CONTACT_DB_PASS );
+		$this->contactsdb = mysqli_connect( ROUNDCUBE_CONTACT_DB_HOST, ROUNDCUBE_CONTACT_DB_USER, ROUNDCUBE_CONTACT_DB_PASS );
 		@mysql_select_db( ROUNDCUBE_CONTACT_DB_NAME, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
 	}
 
@@ -40,7 +41,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	{
 		ZLog::Write( LOGLEVEL_DEBUG, 'dbConnectAuth()' );
 
-		$this->authdb = mysql_connect( ROUNDCUBE_AUTH_DB_HOST, ROUNDCUBE_AUTH_DB_USER, ROUNDCUBE_AUTH_DB_PASS );
+		$this->authdb = mysqli_connect( ROUNDCUBE_AUTH_DB_HOST, ROUNDCUBE_AUTH_DB_USER, ROUNDCUBE_AUTH_DB_PASS );
 		@mysql_select_db( ROUNDCUBE_AUTH_DB_NAME, $this->authdb ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open auth database' ) );
 	}
 
@@ -50,10 +51,10 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write( LOGLEVEL_DEBUG, "dbSelectUserId( $username )" );
 
 		$query = "SELECT user_id FROM users where username='$username'";
-		$result = mysql_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysql_error( $this->contactsdb ) ) );
+		$result = mysqli_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
 		$user_id = "~none~";
 
-		while( $result_rows = mysql_fetch_array( $result ) )
+		while( $result_rows = mysqli_fetch_array( $result ) )
 		{
 			$user_id = $result_rows[0];
 		}
@@ -67,18 +68,18 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write( LOGLEVEL_DEBUG, "dbCreateUser( $username )" );
 
 		$query = "SELECT DISTINCT mail_host,language FROM users LIMIT 1";
-		$result = mysql_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysql_error( $this->contactsdb ) ) );
+		$result = mysqli_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
 		$mail_host = "";
 		$lang = "";
 
-		while( $result_rows = mysql_fetch_array( $result ) )
+		while( $result_rows = mysqli_fetch_array( $result ) )
 		{
 			$mail_host = $result_rows[0];
 			$lang = $result_rows[1];
 		}
 
 		$insert = "INSERT INTO users ( username, created, mail_host, language ) VALUES ( '$username', NOW(), '$mail_host', '$lang' )";
-		mysql_query( $insert, $this->contactsdb ) or ZLog::Write( LOGLEVEL_DEBUG, ( mysql_error( $this->contactsdb ) ) );
+		mysql_query( $insert, $this->contactsdb ) or ZLog::Write( LOGLEVEL_DEBUG, ( mysqli_error( $this->contactsdb ) ) );
 	}
 
 	private function getUserId( $username )
@@ -86,7 +87,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		// Get the user ID, if none is found, create one
 		ZLog::Write( LOGLEVEL_DEBUG, "getUserId( $username )" );
 
-		$clean_username = mysql_real_escape_string( $username );
+		$clean_username = mysqli_real_escape_string( $username );
 
 		$user_id = $this->dbSelectUserId( $clean_username );
 
@@ -339,9 +340,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 		$query = "SELECT contact_id, changed from contacts where user_id = '$this->db_user_id' and del = '$del'";
 
-		$result = mysql_query( $query, $this->contactsdb ) or print ( mysql_error( $this->contactsdb ) );
+		$result = mysqli_query( $query, $this->contactsdb ) or print ( mysqli_error( $this->contactsdb ) );
 
-		while( $result_rows = mysql_fetch_array( $result ) )
+		while( $result_rows = mysqli_fetch_array( $result ) )
 		{
 			$message = array();
 			$message['id'] = $result_rows[0];
@@ -406,10 +407,10 @@ class BackendRoundcubeContacts extends BackendDiff {
 		$message = new SyncContact();
 
 		$query = "SELECT vcard, name, email, firstname, surname from contacts where user_id = '$this->db_user_id' and contact_id = '$id' and del = '0'";
-		$result = mysql_query( $query, $this->contactsdb ) or print ( mysql_error( $this->contactsdb ) );
+		$result = mysqli_query( $query, $this->contactsdb ) or print ( mysqli_error( $this->contactsdb ) );
 		$results = 0;
 
-		while( $result_rows = mysql_fetch_array( $result ) )
+		while( $result_rows = mysqli_fetch_array( $result ) )
 		{
 			$data = $result_rows[0];
 			$name = $result_rows[1];
@@ -681,7 +682,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 		$message = array();
 
-		while($result_rows = mysql_fetch_array($result)){
+		while($result_rows = mysqli_fetch_array($result)){
 			$message["id"] = $result_rows[0];
 			$message["mod"] = strtotime($result_rows[1]);
 			$message["flags"] = 1; // always 'read'
@@ -786,7 +787,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 			$result2=mysql_query($query2,$this->contactsdb) or print (mysql_error($this->contactsdb));
 
-			while($result_rows = mysql_fetch_array($result2)){
+			while($result_rows = mysqli_fetch_array($result2)){
 				$id=$result_rows[0];
 				ZLog::Write(LOGLEVEL_DEBUG, "ChangeMessage new contact id is $id");
 			}
@@ -867,7 +868,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		$query=str_replace('%u', $clean_username, ROUNDCUBE_PASSWORD_SQL);
 		$result=mysql_query($query,$this->authdb) or print (mysql_error($this->authdb));
 
-		while($result_rows = mysql_fetch_array($result)){
+		while($result_rows = mysqli_fetch_array($result)){
 			// Remove any {SPEC} password hasing spec that Dovecot might need (PHP does not need it)
 			// See http://wiki.dovecot.org/Authentication/PasswordSchemes
 			$password=preg_replace('/^{.*}/','',$result_rows[0]);
