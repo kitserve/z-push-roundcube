@@ -32,9 +32,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 	private function dbConnectContacts()
 	{
 		ZLog::Write( LOGLEVEL_DEBUG, 'dbConnectContacts()' );
-
+ ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
 		$this->contactsdb = mysqli_connect( ROUNDCUBE_CONTACT_DB_HOST, ROUNDCUBE_CONTACT_DB_USER, ROUNDCUBE_CONTACT_DB_PASS );
-		@mysql_select_db( ROUNDCUBE_CONTACT_DB_NAME, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
+		@mysqli_select_db( $this->contactsdb, ROUNDCUBE_CONTACT_DB_NAME ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open contacts database' ) );
 	}
 
 	private function dbConnectAuth()
@@ -42,7 +42,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write( LOGLEVEL_DEBUG, 'dbConnectAuth()' );
 
 		$this->authdb = mysqli_connect( ROUNDCUBE_AUTH_DB_HOST, ROUNDCUBE_AUTH_DB_USER, ROUNDCUBE_AUTH_DB_PASS );
-		@mysql_select_db( ROUNDCUBE_AUTH_DB_NAME, $this->authdb ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open auth database' ) );
+		@mysqli_select_db( $this->authdb, ROUNDCUBE_AUTH_DB_NAME ) or ZLog::Write( LOGLEVEL_ERROR, ( 'Unable to open auth database' ) );
 	}
 
 	private function dbSelectUserId( $username )
@@ -51,7 +51,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write( LOGLEVEL_DEBUG, "dbSelectUserId( $username )" );
 
 		$query = "SELECT user_id FROM users where username='$username'";
-		$result = mysqli_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
+		$result = mysqli_query( $this->contactsdb, $query ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
 		$user_id = "~none~";
 
 		while( $result_rows = mysqli_fetch_array( $result ) )
@@ -68,7 +68,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write( LOGLEVEL_DEBUG, "dbCreateUser( $username )" );
 
 		$query = "SELECT DISTINCT mail_host,language FROM users LIMIT 1";
-		$result = mysqli_query( $query, $this->contactsdb ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
+		$result = mysqli_query($this->contactsdb,  $query ) or ZLog::Write( LOGLEVEL_ERROR, ( mysqli_error( $this->contactsdb ) ) );
 		$mail_host = "";
 		$lang = "";
 
@@ -79,7 +79,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		}
 
 		$insert = "INSERT INTO users ( username, created, mail_host, language ) VALUES ( '$username', NOW(), '$mail_host', '$lang' )";
-		mysql_query( $insert, $this->contactsdb ) or ZLog::Write( LOGLEVEL_DEBUG, ( mysqli_error( $this->contactsdb ) ) );
+		mysqli_query( $this->contactsdb, $insert ) or ZLog::Write( LOGLEVEL_DEBUG, ( mysqli_error( $this->contactsdb ) ) );
 	}
 
 	private function getUserId( $username )
@@ -87,7 +87,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 		// Get the user ID, if none is found, create one
 		ZLog::Write( LOGLEVEL_DEBUG, "getUserId( $username )" );
 
-		$clean_username = mysqli_real_escape_string( $username );
+		$clean_username = mysqli_real_escape_string( $this->contactsdb, $username );
 
 		$user_id = $this->dbSelectUserId( $clean_username );
 
@@ -116,7 +116,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	 */
 	public function Logon( $username, $domain, $password )
 	{
-		$this->dbConnectContacts();
+	    $this->dbConnectContacts();
 		$login_success = false;
 
 		if(strcmp(ROUNDCUBE_CONTACT_USER_AUTH,"database")==0)
@@ -340,7 +340,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 		$query = "SELECT contact_id, changed from contacts where user_id = '$this->db_user_id' and del = '$del'";
 
-		$result = mysqli_query( $query, $this->contactsdb ) or print ( mysqli_error( $this->contactsdb ) );
+		$result = mysqli_query( $this->contactsdb, $query ) or print ( mysqli_error( $this->contactsdb ) );
 
 		while( $result_rows = mysqli_fetch_array( $result ) )
 		{
@@ -678,7 +678,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 
 		$query="SELECT contact_id,changed from contacts where user_id='$this->db_user_id' and del='0' and contact_id='$id'";
 
-		$result=mysql_query($query,$this->contactsdb) or print (mysql_error($this->contactsdb));
+		$result=mysqli_query($query,$this->contactsdb) or print (mysqli_error($this->contactsdb));
 
 		$message = array();
 
@@ -779,13 +779,13 @@ class BackendRoundcubeContacts extends BackendDiff {
 		}
 
 		ZLog::Write(LOGLEVEL_DEBUG, "ChangeMessage $query1");
-		mysql_query($query1,$this->contactsdb) or ZLog::Write(LOGLEVEL_DEBUG, (mysql_error($this->contactsdb)));
+		mysqli_query($query1,$this->contactsdb) or ZLog::Write(LOGLEVEL_DEBUG, (mysqli_error($this->contactsdb)));
 
 		// If this is a new entry, we want to know the ID of the record we just added
 		if(!$id){
 			$query2="SELECT contact_id FROM contacts WHERE user_id='$this->db_user_id' AND name='$fullname' AND email='$emailaddress' AND firstname='$firstname' AND surname='$surname' AND vcard='$data' ORDER BY contact_id DESC LIMIT 1";
 
-			$result2=mysql_query($query2,$this->contactsdb) or print (mysql_error($this->contactsdb));
+			$result2=mysqli_query($query2,$this->contactsdb) or print (mysqli_error($this->contactsdb));
 
 			while($result_rows = mysqli_fetch_array($result2)){
 				$id=$result_rows[0];
@@ -824,7 +824,7 @@ class BackendRoundcubeContacts extends BackendDiff {
 	public function DeleteMessage($folderid, $id, $contentParameters) {
 		//return unlink($this->getPath() . '/' . $id);
 		$query="UPDATE contacts SET del='1',changed=NOW() where contact_id='$id' and user_id='$this->db_user_id'";
-		mysql_query($query,$this->contactsdb) or print (mysql_error($this->contactsdb));
+		mysqli_query($query,$this->contactsdb) or print (mysqli_error($this->contactsdb));
 		return false;
 	}
 
@@ -864,9 +864,9 @@ class BackendRoundcubeContacts extends BackendDiff {
 		ZLog::Write(LOGLEVEL_DEBUG, sprintf("getEncryptedPassword(): '%s'", $username));
 		$password="not found";
 
-		$clean_username=mysql_real_escape_string($username);
+		$clean_username=mysqli_real_escape_string($this->contactsdb, $username);
 		$query=str_replace('%u', $clean_username, ROUNDCUBE_PASSWORD_SQL);
-		$result=mysql_query($query,$this->authdb) or print (mysql_error($this->authdb));
+		$result=mysqli_query($query,$this->authdb) or print (mysqli_error($this->authdb));
 
 		while($result_rows = mysqli_fetch_array($result)){
 			// Remove any {SPEC} password hasing spec that Dovecot might need (PHP does not need it)
